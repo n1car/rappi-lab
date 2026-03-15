@@ -8,61 +8,73 @@ export default function Orders() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    api.get('/api/orders/my').then(res => {
-      setOrders(res.data)
-      setLoading(false)
-    })
+    api.get('/api/orders/my').then(res => { setOrders(res.data); setLoading(false) })
   }, [])
 
-  const statusColor = { pending: '#f39c12', accepted: '#3498db', delivered: '#27ae60', declined: '#e74c3c' }
-  const statusLabel = { pending: '⏳ Pendiente', accepted: '🚴 En camino', delivered: '✅ Entregado', declined: '❌ Rechazado' }
+  const statusStyle = {
+    pending:  { color: '#d97706', background: '#fffbeb' },
+    accepted: { color: '#2563eb', background: '#eff6ff' },
+    delivered:{ color: '#16a34a', background: '#f0fdf4' },
+    declined: { color: '#dc2626', background: '#fef2f2' }
+  }
+  const statusLabel = { pending: 'Pendiente', accepted: 'En camino', delivered: 'Entregado', declined: 'Rechazado' }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <button style={styles.back} onClick={() => navigate('/stores')}>← Volver</button>
-        <h1 style={styles.title}>📦 Mis Pedidos</h1>
+    <div style={s.page}>
+      <div style={s.navbar}>
+        <button style={s.back} onClick={() => navigate('/stores')}>← Tiendas</button>
+        <span style={s.brand}>QuickShop</span>
+        <span />
       </div>
-      {loading ? <p>Cargando pedidos...</p> : (
-        orders.length === 0 ? <p style={styles.empty}>No tienes pedidos aún.</p> :
-        orders.map(order => (
-          <div key={order.id} style={styles.card}>
-            <div style={styles.cardHeader}>
-              <strong>{order.stores?.name}</strong>
-              <span style={{ ...styles.status, color: statusColor[order.status] }}>
-                {statusLabel[order.status]}
-              </span>
-            </div>
-            <div style={styles.items}>
-              {order.order_items?.map(item => (
-                <span key={item.id} style={styles.item}>
-                  {item.products?.name} x{item.quantity}
-                </span>
-              ))}
-            </div>
-            <div style={styles.cardFooter}>
-              <span style={styles.date}>{new Date(order.created_at).toLocaleDateString()}</span>
-              <strong style={styles.total}>Total: ${Number(order.total).toLocaleString()}</strong>
-            </div>
-          </div>
-        ))
-      )}
+      <div style={s.content}>
+        <h1 style={s.title}>Mis pedidos</h1>
+        {loading ? <p style={s.loading}>Cargando...</p> : (
+          orders.length === 0
+            ? <div style={s.empty}><p>No tienes pedidos aún.</p></div>
+            : <div style={s.list}>
+                {orders.map(order => (
+                  <div key={order.id} style={s.card}>
+                    <div style={s.cardHeader}>
+                      <span style={s.storeName}>{order.stores?.name}</span>
+                      <span style={{ ...s.status, ...statusStyle[order.status] }}>
+                        {statusLabel[order.status]}
+                      </span>
+                    </div>
+                    <div style={s.products}>
+                      {order.order_items?.map(item => (
+                        <span key={item.id} style={s.tag}>{item.products?.name} x{item.quantity}</span>
+                      ))}
+                    </div>
+                    <div style={s.cardFooter}>
+                      <span style={s.date}>{new Date(order.created_at).toLocaleDateString()}</span>
+                      <span style={s.total}>Total: ${Number(order.total).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+        )}
+      </div>
     </div>
   )
 }
 
-const styles = {
-  container: { maxWidth: '700px', margin: '0 auto', padding: '2rem' },
-  header: { display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' },
-  title: { color: '#e74c3c', margin: 0 },
-  back: { padding: '0.5rem 1rem', background: 'none', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer' },
-  card: { background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)', marginBottom: '1rem' },
-  cardHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' },
-  status: { fontWeight: 'bold' },
-  items: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' },
-  item: { background: '#f0f4f8', padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.9rem' },
-  cardFooter: { display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #eee', paddingTop: '0.75rem' },
-  date: { color: '#999', fontSize: '0.9rem' },
-  total: { color: '#27ae60' },
-  empty: { textAlign: 'center', color: '#666', padding: '2rem' }
+const s = {
+  page: { minHeight: '100vh', background: '#f5f5f5' },
+  navbar: { background: 'white', borderBottom: '1px solid #eee', padding: '0 2rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  brand: { fontWeight: '700', fontSize: '15px', color: '#2563eb' },
+  back: { background: 'none', border: 'none', color: '#2563eb', fontSize: '14px', padding: 0 },
+  content: { maxWidth: '700px', margin: '0 auto', padding: '2rem' },
+  title: { fontSize: '1.4rem', fontWeight: '700', marginBottom: '1.5rem' },
+  list: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
+  card: { background: 'white', padding: '1.25rem 1.5rem', borderRadius: '10px', border: '1px solid #eee' },
+  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' },
+  storeName: { fontWeight: '600', fontSize: '15px' },
+  status: { fontSize: '12px', fontWeight: '600', padding: '0.2rem 0.6rem', borderRadius: '20px' },
+  products: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' },
+  tag: { fontSize: '13px', background: '#f5f5f5', padding: '0.2rem 0.6rem', borderRadius: '6px', color: '#444' },
+  cardFooter: { display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #f0f0f0', paddingTop: '0.75rem' },
+  date: { fontSize: '13px', color: '#999' },
+  total: { fontSize: '14px', fontWeight: '600' },
+  loading: { textAlign: 'center', color: '#666', padding: '2rem' },
+  empty: { textAlign: 'center', padding: '3rem', background: 'white', borderRadius: '10px', border: '1px solid #eee', color: '#666' }
 }

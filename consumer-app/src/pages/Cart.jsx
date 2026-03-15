@@ -18,78 +18,92 @@ export default function Cart() {
   const storeId = localStorage.getItem('current_store_id')
 
   const placeOrder = async () => {
-    if (cart.length === 0) return
     setLoading(true)
     try {
       await api.post('/api/orders', {
         store_id: storeId,
-        items: cart.map(i => ({
-          product_id: i.product_id,
-          quantity: i.quantity,
-          unit_price: i.unit_price
-        }))
+        items: cart.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_price: i.unit_price }))
       })
       localStorage.removeItem('cart')
       localStorage.removeItem('current_store_id')
       setCart([])
-      setMsg('✅ ¡Pedido creado exitosamente!')
+      setMsg('Pedido creado correctamente')
       setTimeout(() => navigate('/orders'), 1500)
-    } catch (err) {
-      setMsg('❌ Error al crear el pedido')
+    } catch {
+      setMsg('Error al crear el pedido')
     }
     setLoading(false)
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <button style={styles.back} onClick={() => navigate(-1)}>← Volver</button>
-        <h1 style={styles.title}>🛒 Mi Carrito</h1>
+    <div style={s.page}>
+      <div style={s.navbar}>
+        <button style={s.back} onClick={() => navigate(-1)}>← Volver</button>
+        <span style={s.brand}>QuickShop</span>
+        <span />
       </div>
-      {msg && <p style={styles.msg}>{msg}</p>}
-      {cart.length === 0 ? (
-        <div style={styles.empty}>
-          <p>Tu carrito está vacío</p>
-          <button style={styles.btn} onClick={() => navigate('/stores')}>Ver tiendas</button>
-        </div>
-      ) : (
-        <>
-          {cart.map(item => (
-            <div key={item.product_id} style={styles.item}>
-              <div>
-                <strong>{item.name}</strong>
-                <p style={styles.itemPrice}>${Number(item.unit_price).toLocaleString()} × {item.quantity}</p>
-              </div>
-              <div style={styles.itemRight}>
-                <strong>${(item.unit_price * item.quantity).toLocaleString()}</strong>
-                <button style={styles.removeBtn} onClick={() => removeItem(item.product_id)}>✕</button>
-              </div>
-            </div>
-          ))}
-          <div style={styles.total}>
-            <strong>Total: ${Number(total).toLocaleString()}</strong>
+      <div style={s.content}>
+        <h1 style={s.title}>Carrito</h1>
+        {msg && <div style={s.msgBox}>{msg}</div>}
+        {cart.length === 0 ? (
+          <div style={s.empty}>
+            <p style={s.emptyText}>Tu carrito está vacío</p>
+            <button style={s.btn} onClick={() => navigate('/stores')}>Ver tiendas</button>
           </div>
-          <button style={styles.orderBtn} onClick={placeOrder} disabled={loading}>
-            {loading ? 'Procesando...' : '✅ Confirmar Pedido'}
-          </button>
-        </>
-      )}
+        ) : (
+          <div style={s.layout}>
+            <div style={s.items}>
+              {cart.map(item => (
+                <div key={item.product_id} style={s.item}>
+                  <div>
+                    <p style={s.itemName}>{item.name}</p>
+                    <p style={s.itemSub}>${Number(item.unit_price).toLocaleString()} x {item.quantity}</p>
+                  </div>
+                  <div style={s.itemRight}>
+                    <span style={s.itemTotal}>${(item.unit_price * item.quantity).toLocaleString()}</span>
+                    <button style={s.removeBtn} onClick={() => removeItem(item.product_id)}>Eliminar</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={s.summary}>
+              <h2 style={s.summaryTitle}>Resumen</h2>
+              <div style={s.summaryRow}>
+                <span>Total</span>
+                <strong>${Number(total).toLocaleString()}</strong>
+              </div>
+              <button style={s.orderBtn} onClick={placeOrder} disabled={loading}>
+                {loading ? 'Procesando...' : 'Confirmar pedido'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-const styles = {
-  container: { maxWidth: '600px', margin: '0 auto', padding: '2rem' },
-  header: { display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' },
-  title: { color: '#e74c3c', margin: 0 },
-  back: { padding: '0.5rem 1rem', background: 'none', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer' },
-  item: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '1rem', borderRadius: '8px', marginBottom: '0.75rem', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' },
-  itemPrice: { color: '#666', margin: '0.25rem 0 0' },
+const s = {
+  page: { minHeight: '100vh', background: '#f5f5f5' },
+  navbar: { background: 'white', borderBottom: '1px solid #eee', padding: '0 2rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  brand: { fontWeight: '700', fontSize: '15px', color: '#2563eb' },
+  back: { background: 'none', border: 'none', color: '#2563eb', fontSize: '14px', padding: 0 },
+  content: { maxWidth: '800px', margin: '0 auto', padding: '2rem' },
+  title: { fontSize: '1.4rem', fontWeight: '700', marginBottom: '1.5rem' },
+  layout: { display: 'grid', gridTemplateColumns: '1fr 280px', gap: '1.5rem', alignItems: 'start' },
+  items: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
+  item: { background: 'white', padding: '1rem 1.25rem', borderRadius: '10px', border: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  itemName: { fontWeight: '600', marginBottom: '0.2rem' },
+  itemSub: { fontSize: '13px', color: '#777', margin: 0 },
   itemRight: { display: 'flex', alignItems: 'center', gap: '1rem' },
-  removeBtn: { background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: '1.1rem' },
-  total: { textAlign: 'right', fontSize: '1.3rem', margin: '1.5rem 0' },
-  orderBtn: { width: '100%', padding: '1rem', background: '#27ae60', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', cursor: 'pointer' },
-  empty: { textAlign: 'center', padding: '3rem' },
-  btn: { padding: '0.75rem 2rem', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', marginTop: '1rem' },
-  msg: { padding: '1rem', background: '#f0fff4', borderRadius: '8px', marginBottom: '1rem', textAlign: 'center' }
+  itemTotal: { fontWeight: '700' },
+  removeBtn: { background: 'none', border: 'none', color: '#dc2626', fontSize: '13px', padding: 0 },
+  summary: { background: 'white', padding: '1.5rem', borderRadius: '10px', border: '1px solid #eee' },
+  summaryTitle: { fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' },
+  summaryRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', fontSize: '15px' },
+  orderBtn: { width: '100%', padding: '0.75rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px' },
+  empty: { textAlign: 'center', padding: '3rem', background: 'white', borderRadius: '10px', border: '1px solid #eee' },
+  emptyText: { color: '#666', marginBottom: '1rem' },
+  btn: { padding: '0.6rem 1.5rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600' },
+  msgBox: { background: '#f0fdf4', color: '#16a34a', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: '500' }
 }

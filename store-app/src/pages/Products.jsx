@@ -4,20 +4,15 @@ import api from '../api/client'
 
 export default function Products() {
   const [products, setProducts] = useState([])
-  const [store, setStore] = useState(null)
   const [form, setForm] = useState({ name: '', description: '', price: '' })
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
-    api.get('/api/stores/my').then(res => {
-      setStore(res.data)
-      return api.get(`/api/products?store_id=${res.data.id}`)
-    }).then(res => {
-      setProducts(res.data)
-      setLoading(false)
-    })
+    api.get('/api/stores/my').then(res =>
+      api.get(`/api/products?store_id=${res.data.id}`)
+    ).then(res => { setProducts(res.data); setLoading(false) })
   }, [])
 
   const createProduct = async (e) => {
@@ -27,68 +22,85 @@ export default function Products() {
       const res = await api.post('/api/products', form)
       setProducts([res.data, ...products])
       setForm({ name: '', description: '', price: '' })
-      setMsg('✅ Producto creado exitosamente')
-    } catch (err) {
-      setMsg('❌ ' + (err.response?.data?.error || 'Error al crear producto'))
+      setMsg('success')
+    } catch {
+      setMsg('error')
     }
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <button style={styles.back} onClick={() => navigate('/dashboard')}>← Volver</button>
-        <h1 style={styles.title}>📦 Mis Productos</h1>
+    <div style={s.page}>
+      <div style={s.navbar}>
+        <button style={s.back} onClick={() => navigate('/dashboard')}>← Dashboard</button>
+        <span style={s.brand}>StorePanel</span>
+        <span />
       </div>
-
-      {/* Formulario crear producto */}
-      <div style={styles.formCard}>
-        <h2 style={styles.formTitle}>Agregar nuevo producto</h2>
-        {msg && <p style={msg.includes('✅') ? styles.success : styles.error}>{msg}</p>}
-        <form onSubmit={createProduct}>
-          <input style={styles.input} type="text" placeholder="Nombre del producto"
-            value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
-          <input style={styles.input} type="text" placeholder="Descripción (opcional)"
-            value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
-          <input style={styles.input} type="number" placeholder="Precio"
-            value={form.price} onChange={e => setForm({...form, price: e.target.value})} required min="0" step="0.01" />
-          <button style={styles.button} type="submit">+ Crear Producto</button>
-        </form>
-      </div>
-
-      {/* Lista de productos */}
-      <h2 style={styles.listTitle}>Productos actuales ({products.length})</h2>
-      {loading ? <p>Cargando...</p> : (
-        <div style={styles.grid}>
-          {products.map(p => (
-            <div key={p.id} style={styles.card}>
-              <h3 style={styles.productName}>{p.name}</h3>
-              {p.description && <p style={styles.desc}>{p.description}</p>}
-              <p style={styles.price}>${Number(p.price).toLocaleString()}</p>
+      <div style={s.content}>
+        <h1 style={s.title}>Productos</h1>
+        <div style={s.layout}>
+          <div>
+            <div style={s.formCard}>
+              <h2 style={s.formTitle}>Nuevo producto</h2>
+              {msg === 'success' && <div style={s.success}>Producto creado correctamente</div>}
+              {msg === 'error' && <div style={s.error}>Error al crear el producto</div>}
+              <form onSubmit={createProduct}>
+                <label style={s.label}>Nombre</label>
+                <input style={s.input} type="text" placeholder="Nombre del producto"
+                  value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+                <label style={s.label}>Descripción</label>
+                <input style={s.input} type="text" placeholder="Descripción (opcional)"
+                  value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
+                <label style={s.label}>Precio</label>
+                <input style={s.input} type="number" placeholder="0.00"
+                  value={form.price} onChange={e => setForm({...form, price: e.target.value})} required min="0" step="0.01" />
+                <button style={s.btn} type="submit">Crear producto</button>
+              </form>
             </div>
-          ))}
-          {products.length === 0 && <p style={styles.empty}>No tienes productos aún.</p>}
+          </div>
+          <div>
+            <h2 style={s.listTitle}>Lista ({products.length})</h2>
+            {loading ? <p style={s.loading}>Cargando...</p> : (
+              <div style={s.list}>
+                {products.map(p => (
+                  <div key={p.id} style={s.productCard}>
+                    <div>
+                      <p style={s.productName}>{p.name}</p>
+                      {p.description && <p style={s.productDesc}>{p.description}</p>}
+                    </div>
+                    <span style={s.price}>${Number(p.price).toLocaleString()}</span>
+                  </div>
+                ))}
+                {products.length === 0 && <p style={s.empty}>No hay productos aún.</p>}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
 
-const styles = {
-  container: { maxWidth: '800px', margin: '0 auto', padding: '2rem' },
-  header: { display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' },
-  title: { color: '#8e44ad', margin: 0 },
-  back: { padding: '0.5rem 1rem', background: 'none', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer' },
-  formCard: { background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)', marginBottom: '2rem' },
-  formTitle: { color: '#2c3e50', marginTop: 0 },
-  input: { width: '100%', padding: '0.75rem', marginBottom: '1rem', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1rem', boxSizing: 'border-box' },
-  button: { width: '100%', padding: '0.75rem', background: '#8e44ad', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', cursor: 'pointer' },
-  success: { color: '#27ae60', background: '#f0fff4', padding: '0.5rem', borderRadius: '6px', marginBottom: '1rem' },
-  error: { color: '#e74c3c', background: '#ffeaea', padding: '0.5rem', borderRadius: '6px', marginBottom: '1rem' },
-  listTitle: { color: '#2c3e50', marginBottom: '1rem' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' },
-  card: { background: 'white', padding: '1.25rem', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' },
-  productName: { margin: '0 0 0.5rem', color: '#2c3e50' },
-  desc: { color: '#777', fontSize: '0.9rem' },
-  price: { color: '#27ae60', fontWeight: 'bold', fontSize: '1.1rem', margin: 0 },
-  empty: { color: '#666', gridColumn: '1/-1' }
+const s = {
+  page: { minHeight: '100vh', background: '#f5f5f5' },
+  navbar: { background: 'white', borderBottom: '1px solid #eee', padding: '0 2rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  brand: { fontWeight: '700', fontSize: '15px', color: '#7c3aed' },
+  back: { background: 'none', border: 'none', color: '#7c3aed', fontSize: '14px', padding: 0 },
+  content: { maxWidth: '900px', margin: '0 auto', padding: '2rem' },
+  title: { fontSize: '1.4rem', fontWeight: '700', marginBottom: '1.5rem' },
+  layout: { display: 'grid', gridTemplateColumns: '340px 1fr', gap: '1.5rem', alignItems: 'start' },
+  formCard: { background: 'white', padding: '1.5rem', borderRadius: '10px', border: '1px solid #eee' },
+  formTitle: { fontSize: '1rem', fontWeight: '700', marginBottom: '1rem' },
+  label: { display: 'block', fontSize: '13px', fontWeight: '500', color: '#444', marginBottom: '0.35rem' },
+  input: { width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #ddd', borderRadius: '8px', marginBottom: '1rem', outline: 'none', background: '#fafafa' },
+  btn: { width: '100%', padding: '0.7rem', background: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px' },
+  success: { background: '#f0fdf4', color: '#16a34a', padding: '0.6rem', borderRadius: '8px', fontSize: '13px', marginBottom: '1rem' },
+  error: { background: '#fef2f2', color: '#dc2626', padding: '0.6rem', borderRadius: '8px', fontSize: '13px', marginBottom: '1rem' },
+  listTitle: { fontSize: '1rem', fontWeight: '700', marginBottom: '0.75rem' },
+  list: { display: 'flex', flexDirection: 'column', gap: '0.6rem' },
+  productCard: { background: 'white', padding: '1rem 1.25rem', borderRadius: '10px', border: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  productName: { fontWeight: '600', marginBottom: '0.15rem' },
+  productDesc: { fontSize: '13px', color: '#777', margin: 0 },
+  price: { fontWeight: '700', color: '#1a1a1a', whiteSpace: 'nowrap' },
+  loading: { color: '#666', fontSize: '14px' },
+  empty: { color: '#999', fontSize: '14px' }
 }

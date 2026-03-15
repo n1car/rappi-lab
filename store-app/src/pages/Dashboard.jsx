@@ -10,10 +10,7 @@ export default function Dashboard() {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   useEffect(() => {
-    api.get('/api/stores/my').then(res => {
-      setStore(res.data)
-      setLoading(false)
-    })
+    api.get('/api/stores/my').then(res => { setStore(res.data); setLoading(false) })
   }, [])
 
   const toggleStore = async () => {
@@ -23,73 +20,68 @@ export default function Dashboard() {
     setToggling(false)
   }
 
-  const logout = () => {
-    localStorage.clear()
-    navigate('/login')
-  }
+  const logout = () => { localStorage.clear(); navigate('/login') }
 
-  if (loading) return <p style={styles.loading}>Cargando...</p>
+  if (loading) return <div style={s.loading}>Cargando...</div>
 
   return (
-    <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>🏪 {store?.name}</h1>
-        <div>
-          <span style={styles.userName}>👋 {user.name}</span>
-          <button style={styles.btnLogout} onClick={logout}>Salir</button>
+    <div style={s.page}>
+      <div style={s.navbar}>
+        <span style={s.brand}>StorePanel</span>
+        <div style={s.navRight}>
+          <span style={s.navName}>{user.name}</span>
+          <button style={s.navBtnGhost} onClick={logout}>Salir</button>
         </div>
       </div>
-
-      {/* Status Card */}
-      <div style={styles.statusCard}>
-        <div>
-          <h2 style={styles.statusTitle}>Estado de la tienda</h2>
-          <p style={store?.is_open ? styles.open : styles.closed}>
-            {store?.is_open ? '🟢 Abierta — Los clientes pueden verte' : '🔴 Cerrada — No apareces en el listado'}
-          </p>
+      <div style={s.content}>
+        <h1 style={s.title}>{store?.name}</h1>
+        <div style={s.statusCard}>
+          <div>
+            <p style={s.statusLabel}>Estado de la tienda</p>
+            <p style={store?.is_open ? s.open : s.closed}>
+              {store?.is_open ? 'Abierta' : 'Cerrada'}
+            </p>
+          </div>
+          <button style={store?.is_open ? s.closeBtn : s.openBtn} onClick={toggleStore} disabled={toggling}>
+            {toggling ? 'Actualizando...' : store?.is_open ? 'Cerrar tienda' : 'Abrir tienda'}
+          </button>
         </div>
-        <button
-          style={store?.is_open ? styles.closeBtn : styles.openBtn}
-          onClick={toggleStore}
-          disabled={toggling}
-        >
-          {toggling ? 'Actualizando...' : store?.is_open ? 'Cerrar Tienda' : 'Abrir Tienda'}
-        </button>
-      </div>
-
-      {/* Nav Cards */}
-      <div style={styles.grid}>
-        <div style={styles.navCard} onClick={() => navigate('/products')}>
-          <span style={styles.navIcon}>📦</span>
-          <h3>Mis Productos</h3>
-          <p style={styles.navDesc}>Crear y ver productos</p>
-        </div>
-        <div style={styles.navCard} onClick={() => navigate('/orders')}>
-          <span style={styles.navIcon}>📋</span>
-          <h3>Pedidos</h3>
-          <p style={styles.navDesc}>Ver pedidos entrantes</p>
+        <div style={s.grid}>
+          <div style={s.navCard} onClick={() => navigate('/products')}>
+            <h3 style={s.navTitle}>Productos</h3>
+            <p style={s.navDesc}>Crear y administrar productos</p>
+            <span style={s.navLink}>Ver productos →</span>
+          </div>
+          <div style={s.navCard} onClick={() => navigate('/orders')}>
+            <h3 style={s.navTitle}>Pedidos</h3>
+            <p style={s.navDesc}>Revisar pedidos entrantes</p>
+            <span style={s.navLink}>Ver pedidos →</span>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-const styles = {
-  container: { maxWidth: '800px', margin: '0 auto', padding: '2rem' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' },
-  title: { color: '#8e44ad', margin: 0 },
-  userName: { marginRight: '1rem', color: '#555' },
-  btnLogout: { padding: '0.5rem 1rem', background: '#95a5a6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' },
-  statusCard: { background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' },
-  statusTitle: { margin: '0 0 0.5rem', color: '#2c3e50' },
-  open: { color: '#27ae60', fontWeight: 'bold', margin: 0 },
-  closed: { color: '#e74c3c', fontWeight: 'bold', margin: 0 },
-  openBtn: { padding: '0.75rem 1.5rem', background: '#27ae60', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem' },
-  closeBtn: { padding: '0.75rem 1.5rem', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem' },
-  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' },
-  navCard: { background: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)', cursor: 'pointer', textAlign: 'center', transition: 'transform 0.2s' },
-  navIcon: { fontSize: '2.5rem' },
-  navDesc: { color: '#777', margin: '0.5rem 0 0' },
+const s = {
+  page: { minHeight: '100vh', background: '#f5f5f5' },
+  navbar: { background: 'white', borderBottom: '1px solid #eee', padding: '0 2rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  brand: { fontWeight: '700', fontSize: '15px', color: '#7c3aed' },
+  navRight: { display: 'flex', alignItems: 'center', gap: '0.75rem' },
+  navName: { fontSize: '14px', color: '#666' },
+  navBtnGhost: { padding: '0.4rem 1rem', background: 'transparent', color: '#666', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px' },
+  content: { maxWidth: '800px', margin: '0 auto', padding: '2rem' },
+  title: { fontSize: '1.4rem', fontWeight: '700', marginBottom: '1.5rem' },
+  statusCard: { background: 'white', padding: '1.5rem', borderRadius: '10px', border: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' },
+  statusLabel: { fontSize: '13px', color: '#777', marginBottom: '0.25rem' },
+  open: { fontWeight: '600', color: '#16a34a', margin: 0 },
+  closed: { fontWeight: '600', color: '#dc2626', margin: 0 },
+  openBtn: { padding: '0.6rem 1.25rem', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px' },
+  closeBtn: { padding: '0.6rem 1.25rem', background: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px' },
+  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' },
+  navCard: { background: 'white', padding: '1.5rem', borderRadius: '10px', border: '1px solid #eee', cursor: 'pointer' },
+  navTitle: { fontWeight: '700', marginBottom: '0.4rem' },
+  navDesc: { fontSize: '13px', color: '#777', marginBottom: '0.75rem' },
+  navLink: { fontSize: '13px', color: '#7c3aed', fontWeight: '500' },
   loading: { textAlign: 'center', padding: '3rem', color: '#666' }
 }

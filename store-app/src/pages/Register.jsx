@@ -5,10 +5,12 @@ import api from '../api/client'
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'store', store_name: '' })
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
     setError('')
     try {
       const res = await api.post('/api/auth/register', form)
@@ -18,39 +20,47 @@ export default function Register() {
     } catch (err) {
       setError(err.response?.data?.error || 'Error al registrarse')
     }
+    setLoading(false)
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>🏪 Store App</h1>
-        <h2 style={styles.subtitle}>Registrar Tienda</h2>
-        {error && <p style={styles.error}>{error}</p>}
+    <div style={s.page}>
+      <div style={s.card}>
+        <div style={s.brand}>StorePanel</div>
+        <h1 style={s.title}>Crear tienda</h1>
+        <p style={s.sub}>Registra tu tienda en la plataforma</p>
+        {error && <div style={s.error}>{error}</div>}
         <form onSubmit={handleSubmit}>
-          <input style={styles.input} type="text" placeholder="Tu nombre completo"
+          <label style={s.label}>Tu nombre</label>
+          <input style={s.input} type="text" placeholder="Nombre completo"
             value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
-          <input style={styles.input} type="email" placeholder="Email"
+          <label style={s.label}>Correo electrónico</label>
+          <input style={s.input} type="email" placeholder="tu@email.com"
             value={form.email} onChange={e => setForm({...form, email: e.target.value})} required />
-          <input style={styles.input} type="password" placeholder="Contraseña"
+          <label style={s.label}>Contraseña</label>
+          <input style={s.input} type="password" placeholder="••••••••"
             value={form.password} onChange={e => setForm({...form, password: e.target.value})} required />
-          <input style={styles.inputHighlight} type="text" placeholder="🏪 Nombre de tu tienda"
+          <label style={s.label}>Nombre de la tienda</label>
+          <input style={s.inputHighlight} type="text" placeholder="Nombre de tu tienda"
             value={form.store_name} onChange={e => setForm({...form, store_name: e.target.value})} required />
-          <button style={styles.button} type="submit">Crear Tienda</button>
+          <button style={s.btn} type="submit" disabled={loading}>{loading ? 'Creando...' : 'Crear tienda'}</button>
         </form>
-        <p style={styles.link}>¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></p>
+        <p style={s.footer}>Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></p>
       </div>
     </div>
   )
 }
 
-const styles = {
-  container: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4f8' },
-  card: { background: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' },
-  title: { textAlign: 'center', color: '#8e44ad', marginBottom: '0.5rem' },
-  subtitle: { textAlign: 'center', color: '#555', marginBottom: '1.5rem', fontWeight: 'normal' },
-  input: { width: '100%', padding: '0.75rem', marginBottom: '1rem', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1rem', boxSizing: 'border-box' },
-  inputHighlight: { width: '100%', padding: '0.75rem', marginBottom: '1rem', borderRadius: '8px', border: '2px solid #8e44ad', fontSize: '1rem', boxSizing: 'border-box' },
-  button: { width: '100%', padding: '0.75rem', background: '#8e44ad', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', cursor: 'pointer' },
-  error: { color: '#e74c3c', background: '#ffeaea', padding: '0.5rem', borderRadius: '6px', marginBottom: '1rem' },
-  link: { textAlign: 'center', marginTop: '1rem', color: '#666' }
+const s = {
+  page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5' },
+  card: { background: 'white', padding: '2.5rem', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
+  brand: { fontSize: '13px', fontWeight: '600', color: '#7c3aed', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '1.5rem' },
+  title: { fontSize: '1.5rem', fontWeight: '700', marginBottom: '0.25rem' },
+  sub: { color: '#666', fontSize: '14px', marginBottom: '1.5rem' },
+  label: { display: 'block', fontSize: '13px', fontWeight: '500', color: '#444', marginBottom: '0.35rem' },
+  input: { width: '100%', padding: '0.65rem 0.85rem', border: '1px solid #ddd', borderRadius: '8px', marginBottom: '1rem', outline: 'none', background: '#fafafa' },
+  inputHighlight: { width: '100%', padding: '0.65rem 0.85rem', border: '2px solid #7c3aed', borderRadius: '8px', marginBottom: '1rem', outline: 'none', background: '#fafafa' },
+  btn: { width: '100%', padding: '0.75rem', background: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', marginTop: '0.25rem' },
+  error: { background: '#fef2f2', color: '#dc2626', padding: '0.75rem', borderRadius: '8px', fontSize: '14px', marginBottom: '1rem' },
+  footer: { textAlign: 'center', marginTop: '1.25rem', fontSize: '14px', color: '#666' }
 }
