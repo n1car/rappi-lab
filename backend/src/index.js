@@ -18,9 +18,9 @@ app.use(cors({
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
-    'https://rappi-lab-consumer.vercel.app',
-    'https://rappi-lab-store.vercel.app',
-    'https://rappi-lab-delivery.vercel.app'
+    'https://rappi-lab-consumer-three.vercel.app',
+    'https://rappi-lab-store-zeta.vercel.app',
+    'https://rappi-lab-delivery-six.vercel.app'
   ],
   credentials: true
 }));
