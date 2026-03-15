@@ -1,0 +1,11 @@
+# Variables de entorno - NUNCA subir a GitHub
+.env
+.env.local
+.env.production
+
+# Dependencias
+node_modules/
+*/node_modules/
+
+# Archivos del sistema
+.DS_Store
