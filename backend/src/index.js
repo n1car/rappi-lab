@@ -13,7 +13,18 @@ const app = express()
 const PORT = process.env.PORT || 4000
 
 // ── Middlewares globales ──────────────────────────────
-app.use(cors())               // Permite llamadas desde los frontends
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'https://rappi-lab-consumer.vercel.app',
+    'https://rappi-lab-store.vercel.app',
+    'https://rappi-lab-delivery.vercel.app'
+  ],
+  credentials: true
+}));
+
 app.use(express.json())       // Parsea el body como JSON
 
 // ── Rutas ─────────────────────────────────────────────
