@@ -4,9 +4,9 @@ import Register from './pages/Register'
 import AvailableOrders from './pages/AvailableOrders'
 import MyOrders from './pages/MyOrders'
 
-const PrivateRoute = ({ children }) => {
+const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('token')
-  return token ? children : <Navigate to="/login" />
+  return token ? <>{children}</> : <Navigate to="/login" />
 }
 
 export default function App() {

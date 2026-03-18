@@ -2,12 +2,24 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 
+interface Order {
+  id: string
+  total: number
+  created_at: string
+  stores?: { name: string }
+  users?: { name: string }
+}
+
+interface User {
+  name: string
+}
+
 export default function AvailableOrders() {
-  const [orders, setOrders] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [acting, setActing] = useState(null)
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [acting, setActing] = useState<string | null>(null)
   const navigate = useNavigate()
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const user: User = JSON.parse(localStorage.getItem('user') || '{}')
 
   const fetchOrders = () => {
     setLoading(true)
@@ -16,14 +28,14 @@ export default function AvailableOrders() {
 
   useEffect(() => { fetchOrders() }, [])
 
-  const accept = async (id) => {
+  const accept = async (id: string) => {
     setActing(id)
     try { await api.put(`/api/orders/${id}/accept`); fetchOrders() }
     catch { alert('Error al aceptar la orden') }
     setActing(null)
   }
 
-  const decline = async (id) => {
+  const decline = async (id: string) => {
     setActing(id)
     try { await api.put(`/api/orders/${id}/decline`); fetchOrders() }
     catch { alert('Error al rechazar la orden') }
@@ -47,7 +59,10 @@ export default function AvailableOrders() {
         <h1 style={s.title}>Pedidos disponibles</h1>
         {loading ? <p style={s.loading}>Cargando...</p> : (
           orders.length === 0
-            ? <div style={s.empty}><p style={s.emptyTitle}>No hay pedidos disponibles</p><p style={s.emptyDesc}>Vuelve a revisar en unos minutos</p></div>
+            ? <div style={s.empty}>
+                <p style={s.emptyTitle}>No hay pedidos disponibles</p>
+                <p style={s.emptyDesc}>Vuelve a revisar en unos minutos</p>
+              </div>
             : <div style={s.list}>
                 {orders.map(order => (
                   <div key={order.id} style={s.card}>
@@ -76,7 +91,7 @@ export default function AvailableOrders() {
   )
 }
 
-const s = {
+const s: Record<string, React.CSSProperties> = {
   page: { minHeight: '100vh', background: '#f5f5f5' },
   navbar: { background: 'white', borderBottom: '1px solid #eee', padding: '0 2rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   brand: { fontWeight: '700', fontSize: '15px', color: '#ea580c' },
@@ -91,7 +106,7 @@ const s = {
   card: { background: 'white', padding: '1.25rem 1.5rem', borderRadius: '10px', border: '1px solid #eee' },
   cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' },
   storeName: { fontWeight: '600', fontSize: '15px', marginBottom: '0.2rem' },
-  client: { fontSize: '13px', color: '#777', margin: 0 },
+  client: { fontSize: '13px', color: '#777', margin: '0' },
   total: { fontWeight: '700', fontSize: '1.1rem' },
   date: { fontSize: '12px', color: '#aaa', margin: '0.5rem 0 1rem' },
   actions: { display: 'flex', gap: '0.75rem' },
@@ -100,5 +115,5 @@ const s = {
   loading: { textAlign: 'center', color: '#666', padding: '2rem' },
   empty: { textAlign: 'center', padding: '3rem', background: 'white', borderRadius: '10px', border: '1px solid #eee' },
   emptyTitle: { fontWeight: '600', marginBottom: '0.5rem' },
-  emptyDesc: { color: '#999', fontSize: '14px', margin: 0 }
+  emptyDesc: { color: '#999', fontSize: '14px', margin: '0' }
 }

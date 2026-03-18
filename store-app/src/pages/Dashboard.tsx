@@ -2,12 +2,22 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 
+interface Store {
+  id: string
+  name: string
+  is_open: boolean
+}
+
+interface User {
+  name: string
+}
+
 export default function Dashboard() {
-  const [store, setStore] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [toggling, setToggling] = useState(false)
+  const [store, setStore] = useState<Store | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [toggling, setToggling] = useState<boolean>(false)
   const navigate = useNavigate()
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const user: User = JSON.parse(localStorage.getItem('user') || '{}')
 
   useEffect(() => {
     api.get('/api/stores/my').then(res => { setStore(res.data); setLoading(false) })
@@ -63,7 +73,7 @@ export default function Dashboard() {
   )
 }
 
-const s = {
+const s: Record<string, React.CSSProperties> = {
   page: { minHeight: '100vh', background: '#f5f5f5' },
   navbar: { background: 'white', borderBottom: '1px solid #eee', padding: '0 2rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   brand: { fontWeight: '700', fontSize: '15px', color: '#7c3aed' },
@@ -74,8 +84,8 @@ const s = {
   title: { fontSize: '1.4rem', fontWeight: '700', marginBottom: '1.5rem' },
   statusCard: { background: 'white', padding: '1.5rem', borderRadius: '10px', border: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' },
   statusLabel: { fontSize: '13px', color: '#777', marginBottom: '0.25rem' },
-  open: { fontWeight: '600', color: '#16a34a', margin: 0 },
-  closed: { fontWeight: '600', color: '#dc2626', margin: 0 },
+  open: { fontWeight: '600', color: '#16a34a', margin: '0' },
+  closed: { fontWeight: '600', color: '#dc2626', margin: '0' },
   openBtn: { padding: '0.6rem 1.25rem', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px' },
   closeBtn: { padding: '0.6rem 1.25rem', background: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px' },
   grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' },

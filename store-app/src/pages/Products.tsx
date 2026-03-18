@@ -2,11 +2,24 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 
+interface Product {
+  id: string
+  name: string
+  description?: string
+  price: number
+}
+
+interface ProductForm {
+  name: string
+  description: string
+  price: string
+}
+
 export default function Products() {
-  const [products, setProducts] = useState([])
-  const [form, setForm] = useState({ name: '', description: '', price: '' })
-  const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState('')
+  const [products, setProducts] = useState<Product[]>([])
+  const [form, setForm] = useState<ProductForm>({ name: '', description: '', price: '' })
+  const [loading, setLoading] = useState<boolean>(true)
+  const [msg, setMsg] = useState<string>('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -15,7 +28,7 @@ export default function Products() {
     ).then(res => { setProducts(res.data); setLoading(false) })
   }, [])
 
-  const createProduct = async (e) => {
+  const createProduct = async (e: React.FormEvent) => {
     e.preventDefault()
     setMsg('')
     try {
@@ -80,11 +93,11 @@ export default function Products() {
   )
 }
 
-const s = {
+const s: Record<string, React.CSSProperties> = {
   page: { minHeight: '100vh', background: '#f5f5f5' },
   navbar: { background: 'white', borderBottom: '1px solid #eee', padding: '0 2rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   brand: { fontWeight: '700', fontSize: '15px', color: '#7c3aed' },
-  back: { background: 'none', border: 'none', color: '#7c3aed', fontSize: '14px', padding: 0 },
+  back: { background: 'none', border: 'none', color: '#7c3aed', fontSize: '14px', padding: '0' },
   content: { maxWidth: '900px', margin: '0 auto', padding: '2rem' },
   title: { fontSize: '1.4rem', fontWeight: '700', marginBottom: '1.5rem' },
   layout: { display: 'grid', gridTemplateColumns: '340px 1fr', gap: '1.5rem', alignItems: 'start' },
@@ -99,7 +112,7 @@ const s = {
   list: { display: 'flex', flexDirection: 'column', gap: '0.6rem' },
   productCard: { background: 'white', padding: '1rem 1.25rem', borderRadius: '10px', border: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   productName: { fontWeight: '600', marginBottom: '0.15rem' },
-  productDesc: { fontSize: '13px', color: '#777', margin: 0 },
+  productDesc: { fontSize: '13px', color: '#777', margin: '0' },
   price: { fontWeight: '700', color: '#1a1a1a', whiteSpace: 'nowrap' },
   loading: { color: '#666', fontSize: '14px' },
   empty: { color: '#999', fontSize: '14px' }

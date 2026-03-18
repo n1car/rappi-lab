@@ -2,23 +2,32 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import api from '../api/client'
 
+interface LoginForm {
+  email: string
+  password: string
+}
+
 export default function Login() {
-  const [form, setForm] = useState({ email: '', password: '' })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [form, setForm] = useState<LoginForm>({ email: '', password: '' })
+  const [error, setError] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(false)
   const navigate = useNavigate()
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
     try {
       const res = await api.post('/api/auth/login', form)
-      if (res.data.user.role !== 'delivery') { setError('Esta app es solo para repartidores'); setLoading(false); return }
+      if (res.data.user.role !== 'delivery') {
+        setError('Esta app es solo para repartidores')
+        setLoading(false)
+        return
+      }
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('user', JSON.stringify(res.data.user))
       navigate('/available')
-    } catch (err) {
+    } catch (err: any) {
       setError(err.response?.data?.error || 'Error al iniciar sesión')
     }
     setLoading(false)
@@ -38,7 +47,9 @@ export default function Login() {
           <label style={s.label}>Contraseña</label>
           <input style={s.input} type="password" placeholder="••••••••"
             value={form.password} onChange={e => setForm({...form, password: e.target.value})} required />
-          <button style={s.btn} type="submit" disabled={loading}>{loading ? 'Entrando...' : 'Entrar'}</button>
+          <button style={s.btn} type="submit" disabled={loading}>
+            {loading ? 'Entrando...' : 'Entrar'}
+          </button>
         </form>
         <p style={s.footer}>No tienes cuenta? <Link to="/register">Regístrate</Link></p>
       </div>
@@ -46,7 +57,7 @@ export default function Login() {
   )
 }
 
-const s = {
+const s: Record<string, React.CSSProperties> = {
   page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5' },
   card: { background: 'white', padding: '2.5rem', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
   brand: { fontSize: '13px', fontWeight: '600', color: '#ea580c', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '1.5rem' },

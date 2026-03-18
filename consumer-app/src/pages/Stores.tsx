@@ -2,11 +2,21 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 
+interface Store {
+  id: string
+  name: string
+  is_open: boolean
+}
+
+interface User {
+  name: string
+}
+
 export default function Stores() {
-  const [stores, setStores] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [stores, setStores] = useState<Store[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
   const navigate = useNavigate()
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const user: User = JSON.parse(localStorage.getItem('user') || '{}')
 
   useEffect(() => {
     api.get('/api/stores').then(res => { setStores(res.data); setLoading(false) })
@@ -30,8 +40,7 @@ export default function Stores() {
         {loading ? <p style={s.loading}>Cargando...</p> : (
           <div style={s.grid}>
             {stores.map(store => (
-              <div key={store.id} style={s.card}
-                onClick={() => navigate(`/stores/${store.id}/products`)}>
+              <div key={store.id} style={s.card} onClick={() => navigate(`/stores/${store.id}/products`)}>
                 <div style={s.cardTop}>
                   <span style={store.is_open ? s.open : s.closed}>
                     {store.is_open ? 'Abierta' : 'Cerrada'}
@@ -49,7 +58,7 @@ export default function Stores() {
   )
 }
 
-const s = {
+const s: Record<string, React.CSSProperties> = {
   page: { minHeight: '100vh', background: '#f5f5f5' },
   navbar: { background: 'white', borderBottom: '1px solid #eee', padding: '0 2rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   brand: { fontWeight: '700', fontSize: '15px', color: '#2563eb' },

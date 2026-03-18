@@ -2,11 +2,26 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api/client'
 
+interface Product {
+  id: string
+  name: string
+  description?: string
+  price: number
+}
+
+interface CartItem {
+  product_id: string
+  name: string
+  unit_price: number
+  quantity: number
+  store_id: string
+}
+
 export default function Products() {
-  const { storeId } = useParams()
-  const [products, setProducts] = useState([])
-  const [cart, setCart] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { storeId } = useParams<{ storeId: string }>()
+  const [products, setProducts] = useState<Product[]>([])
+  const [cart, setCart] = useState<CartItem[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -15,17 +30,17 @@ export default function Products() {
     if (saved) setCart(JSON.parse(saved))
   }, [storeId])
 
-  const addToCart = (product) => {
+  const addToCart = (product: Product) => {
     const existing = cart.find(i => i.product_id === product.id)
-    let newCart = existing
+    const newCart: CartItem[] = existing
       ? cart.map(i => i.product_id === product.id ? { ...i, quantity: i.quantity + 1 } : i)
-      : [...cart, { product_id: product.id, name: product.name, unit_price: product.price, quantity: 1, store_id: storeId }]
+      : [...cart, { product_id: product.id, name: product.name, unit_price: product.price, quantity: 1, store_id: storeId! }]
     setCart(newCart)
     localStorage.setItem('cart', JSON.stringify(newCart))
-    localStorage.setItem('current_store_id', storeId)
+    localStorage.setItem('current_store_id', storeId!)
   }
 
-  const getQty = (id) => cart.find(i => i.product_id === id)?.quantity || 0
+  const getQty = (id: string): number => cart.find(i => i.product_id === id)?.quantity || 0
   const totalItems = cart.reduce((s, i) => s + i.quantity, 0)
 
   return (
@@ -61,11 +76,11 @@ export default function Products() {
   )
 }
 
-const s = {
+const s: Record<string, React.CSSProperties> = {
   page: { minHeight: '100vh', background: '#f5f5f5' },
   navbar: { background: 'white', borderBottom: '1px solid #eee', padding: '0 2rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   brand: { fontWeight: '700', fontSize: '15px', color: '#2563eb' },
-  back: { background: 'none', border: 'none', color: '#2563eb', fontSize: '14px', padding: 0 },
+  back: { background: 'none', border: 'none', color: '#2563eb', fontSize: '14px', padding: '0' },
   cartBtn: { padding: '0.4rem 1rem', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '500', position: 'relative' },
   badge: { background: 'white', color: '#2563eb', borderRadius: '10px', padding: '0 5px', marginLeft: '5px', fontWeight: '700', fontSize: '12px' },
   content: { maxWidth: '900px', margin: '0 auto', padding: '2rem' },
