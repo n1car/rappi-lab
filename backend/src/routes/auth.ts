@@ -1,30 +1,30 @@
-import { Router } from 'express'
+import { Router, Request, Response } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import { supabase } from '../config/supabase.js'
+import { supabase } from '../config/supabase'
 
 const router = Router()
 
-// ─── REGISTRO ──────────────────────────────────────────
 // POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password, role, store_name } = req.body
 
-    // Validaciones básicas
     if (!name || !email || !password || !role) {
-      return res.status(400).json({ error: 'Todos los campos son requeridos' })
+      res.status(400).json({ error: 'Todos los campos son requeridos' })
+      return
     }
 
     if (!['consumer', 'store', 'delivery'].includes(role)) {
-      return res.status(400).json({ error: 'Rol inválido' })
+      res.status(400).json({ error: 'Rol inválido' })
+      return
     }
 
     if (role === 'store' && !store_name) {
-      return res.status(400).json({ error: 'El nombre de la tienda es requerido' })
+      res.status(400).json({ error: 'El nombre de la tienda es requerido' })
+      return
     }
 
-    // Verificar si el email ya existe
     const { data: existing } = await supabase
       .from('users')
       .select('id')
@@ -32,13 +32,12 @@ router.post('/register', async (req, res) => {
       .single()
 
     if (existing) {
-      return res.status(400).json({ error: 'El email ya está registrado' })
+      res.status(400).json({ error: 'El email ya está registrado' })
+      return
     }
 
-    // Encriptar la contraseña
     const password_hash = await bcrypt.hash(password, 10)
 
-    // Crear el usuario en la BD
     const { data: newUser, error: userError } = await supabase
       .from('users')
       .insert({ name, email, password_hash, role })
@@ -47,7 +46,6 @@ router.post('/register', async (req, res) => {
 
     if (userError) throw userError
 
-    // Si el rol es 'store', crear también la tienda
     if (role === 'store') {
       const { error: storeError } = await supabase
         .from('stores')
@@ -56,10 +54,9 @@ router.post('/register', async (req, res) => {
       if (storeError) throw storeError
     }
 
-    // Crear el token JWT
     const token = jwt.sign(
       { id: newUser.id, email: newUser.email, role: newUser.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET as string,
       { expiresIn: '7d' }
     )
 
@@ -75,17 +72,16 @@ router.post('/register', async (req, res) => {
   }
 })
 
-// ─── LOGIN ──────────────────────────────────────────────
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email y contraseña requeridos' })
+      res.status(400).json({ error: 'Email y contraseña requeridos' })
+      return
     }
 
-    // Buscar el usuario por email
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -93,19 +89,19 @@ router.post('/login', async (req, res) => {
       .single()
 
     if (error || !user) {
-      return res.status(401).json({ error: 'Credenciales inválidas' })
+      res.status(401).json({ error: 'Credenciales inválidas' })
+      return
     }
 
-    // Verificar la contraseña
     const validPassword = await bcrypt.compare(password, user.password_hash)
     if (!validPassword) {
-      return res.status(401).json({ error: 'Credenciales inválidas' })
+      res.status(401).json({ error: 'Credenciales inválidas' })
+      return
     }
 
-    // Crear el token JWT
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET as string,
       { expiresIn: '7d' }
     )
 
