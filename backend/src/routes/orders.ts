@@ -1,6 +1,7 @@
 import { Router, Response } from 'express'
 import { supabase } from '../config/supabase'
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth'
+import { OrderStatus } from '../types/orderStatus'
 
 interface OrderItem {
   product_id: string
@@ -8,15 +9,29 @@ interface OrderItem {
   unit_price: number
 }
 
+interface Position {
+  lat: number
+  lng: number
+}
+
 const router = Router()
 
-// POST /api/orders — Crear orden (solo consumidor)
+// POST /api/orders — Crear orden con destino (consumidor)
 router.post('/', authenticate, requireRole(['consumer']), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { store_id, items }: { store_id: string; items: OrderItem[] } = req.body
+    const { store_id, items, destination }: {
+      store_id: string
+      items: OrderItem[]
+      destination: Position
+    } = req.body
 
     if (!store_id || !items || items.length === 0) {
       res.status(400).json({ error: 'store_id e items son requeridos' })
+      return
+    }
+
+    if (!destination || destination.lat === undefined || destination.lng === undefined) {
+      res.status(400).json({ error: 'El destino es requerido' })
       return
     }
 
@@ -24,7 +39,13 @@ router.post('/', authenticate, requireRole(['consumer']), async (req: AuthReques
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .insert({ consumer_id: req.user!.id, store_id, total })
+      .insert({
+        consumer_id: req.user!.id,
+        store_id,
+        total,
+        status: OrderStatus.CREATED,
+        destination: `SRID=4326;POINT(${destination.lng} ${destination.lat})`
+      })
       .select()
       .single()
 
@@ -95,13 +116,13 @@ router.get('/store', authenticate, requireRole(['store']), async (req: AuthReque
   }
 })
 
-// GET /api/orders/available — Órdenes disponibles para repartir (delivery)
+// GET /api/orders/available — Órdenes disponibles (delivery)
 router.get('/available', authenticate, requireRole(['delivery']), async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { data, error } = await supabase
       .from('orders')
       .select('*, stores(name), users!consumer_id(name)')
-      .eq('status', 'pending')
+      .eq('status', OrderStatus.CREATED)
       .is('delivery_id', null)
       .order('created_at', { ascending: false })
 
@@ -128,14 +149,33 @@ router.get('/delivery', authenticate, requireRole(['delivery']), async (req: Aut
   }
 })
 
-// PUT /api/orders/:id/accept — Aceptar orden (delivery)
-router.put('/:id/accept', authenticate, requireRole(['delivery']), async (req: AuthRequest, res: Response): Promise<void> => {
+// GET /api/orders/:id — Detalle de una orden
+router.get('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { data, error } = await supabase
       .from('orders')
-      .update({ delivery_id: req.user!.id, status: 'accepted' })
+      .select('*, stores(name), order_items(*, products(name))')
       .eq('id', req.params.id)
-      .eq('status', 'pending')
+      .single()
+
+    if (error) throw error
+    res.json(data)
+  } catch {
+    res.status(500).json({ error: 'Error al obtener orden' })
+  }
+})
+
+// PATCH /api/orders/:id/accept — Aceptar orden (delivery)
+router.patch('/:id/accept', authenticate, requireRole(['delivery']), async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({
+        delivery_id: req.user!.id,
+        status: OrderStatus.IN_DELIVERY
+      })
+      .eq('id', req.params.id)
+      .eq('status', OrderStatus.CREATED)
       .select()
       .single()
 
@@ -150,25 +190,48 @@ router.put('/:id/accept', authenticate, requireRole(['delivery']), async (req: A
   }
 })
 
-// PUT /api/orders/:id/decline — Rechazar orden (delivery)
-router.put('/:id/decline', authenticate, requireRole(['delivery']), async (req: AuthRequest, res: Response): Promise<void> => {
+// PATCH /api/orders/:id/position — Actualizar posición del repartidor
+router.patch('/:id/position', authenticate, requireRole(['delivery']), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const { lat, lng }: Position = req.body
+
+    if (lat === undefined || lng === undefined) {
+      res.status(400).json({ error: 'lat y lng son requeridos' })
+      return
+    }
+
     const { data, error } = await supabase
       .from('orders')
-      .update({ status: 'declined' })
+      .update({
+        delivery_position: `SRID=4326;POINT(${lng} ${lat})`
+      })
       .eq('id', req.params.id)
-      .eq('status', 'pending')
+      .eq('delivery_id', req.user!.id)
       .select()
       .single()
 
     if (error) throw error
-    if (!data) {
-      res.status(404).json({ error: 'Orden no disponible' })
-      return
+
+    // Verificar si llegó al destino (menos de 5 metros)
+    const { data: arrivedData } = await supabase
+      .rpc('check_delivery_arrived', { order_id: req.params.id })
+
+    const arrived = arrivedData as boolean
+
+    if (arrived) {
+      await supabase
+        .from('orders')
+        .update({ status: OrderStatus.DELIVERED })
+        .eq('id', req.params.id)
     }
-    res.json(data)
-  } catch {
-    res.status(500).json({ error: 'Error al rechazar orden' })
+
+    res.json({
+      order: data,
+      arrived: arrived || false
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error al actualizar posición' })
   }
 })
 
