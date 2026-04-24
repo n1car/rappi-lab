@@ -1,6 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  (import.meta as any).env.VITE_SUPABASE_URL as string,
+  (import.meta as any).env.VITE_SUPABASE_ANON_KEY as string
+)
 
 interface OrderItem {
   id: string
@@ -20,20 +26,52 @@ interface Order {
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState<boolean>(true)
+  const channelsRef = useRef<Record<string, any>>({})
   const navigate = useNavigate()
 
+  const subscribeToOrder = (orderId: string) => {
+    if (channelsRef.current[orderId]) return
+
+    const channel = supabase.channel(`order:${orderId}`)
+
+    channel.on('broadcast', { event: 'position-update' }, () => {
+      // Actualizar status a En entrega si llega posición
+      setOrders(prev => prev.map(o =>
+        o.id === orderId ? { ...o, status: 'En entrega' } : o
+      ))
+    })
+
+    channel.on('broadcast', { event: 'order-delivered' }, () => {
+      setOrders(prev => prev.map(o =>
+        o.id === orderId ? { ...o, status: 'Entregado' } : o
+      ))
+    })
+
+    channel.subscribe()
+    channelsRef.current[orderId] = channel
+  }
+
   useEffect(() => {
-    api.get('/api/orders/store').then(res => { setOrders(res.data); setLoading(false) })
+    api.get('/api/orders/store').then(res => {
+      setOrders(res.data)
+      setLoading(false)
+
+      res.data.forEach((order: Order) => {
+        if (order.status === 'En entrega') {
+          subscribeToOrder(order.id)
+        }
+      })
+    })
+
+    return () => {
+      Object.values(channelsRef.current).forEach((ch: any) => ch?.unsubscribe())
+    }
   }, [])
 
   const statusStyle: Record<string, React.CSSProperties> = {
-    pending:  { color: '#d97706', background: '#fffbeb' },
-    accepted: { color: '#2563eb', background: '#eff6ff' },
-    delivered:{ color: '#16a34a', background: '#f0fdf4' },
-    declined: { color: '#dc2626', background: '#fef2f2' }
-  }
-  const statusLabel: Record<string, string> = {
-    pending: 'Pendiente', accepted: 'En camino', delivered: 'Entregado', declined: 'Rechazado'
+    'Creado':     { color: '#d97706', background: '#fffbeb' },
+    'En entrega': { color: '#2563eb', background: '#eff6ff' },
+    'Entregado':  { color: '#16a34a', background: '#f0fdf4' }
   }
 
   return (
@@ -57,12 +95,14 @@ export default function Orders() {
                         <p style={s.clientEmail}>{order.users?.email}</p>
                       </div>
                       <span style={{ ...s.status, ...statusStyle[order.status] }}>
-                        {statusLabel[order.status]}
+                        {order.status}
                       </span>
                     </div>
                     <div style={s.products}>
                       {order.order_items?.map(item => (
-                        <span key={item.id} style={s.tag}>{item.products?.name} x{item.quantity}</span>
+                        <span key={item.id} style={s.tag}>
+                          {item.products?.name} x{item.quantity}
+                        </span>
                       ))}
                     </div>
                     <div style={s.cardFooter}>
