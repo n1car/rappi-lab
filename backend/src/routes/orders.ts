@@ -35,6 +35,23 @@ router.post('/', authenticate, requireRole(['consumer']), async (req: AuthReques
       return
     }
 
+    // Verificar que la tienda esté abierta
+    const { data: store, error: storeError } = await supabase
+      .from('stores')
+      .select('is_open')
+      .eq('id', store_id)
+      .single()
+
+    if (storeError || !store) {
+      res.status(404).json({ error: 'Tienda no encontrada' })
+      return
+    }
+
+    if (!(store as { is_open: boolean }).is_open) {
+      res.status(400).json({ error: 'La tienda está cerrada' })
+      return
+    }
+
     const total = items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
 
     const { data: order, error: orderError } = await supabase

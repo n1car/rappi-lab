@@ -40,14 +40,21 @@ export default function Stores() {
         {loading ? <p style={s.loading}>Cargando...</p> : (
           <div style={s.grid}>
             {stores.map(store => (
-              <div key={store.id} style={s.card} onClick={() => navigate(`/stores/${store.id}/products`)}>
+              <div key={store.id} style={{
+                ...s.card,
+                opacity: store.is_open ? 1 : 0.6,
+                cursor: store.is_open ? 'pointer' : 'not-allowed'
+              }}
+                onClick={() => store.is_open && navigate(`/stores/${store.id}/products`)}>
                 <div style={s.cardTop}>
                   <span style={store.is_open ? s.open : s.closed}>
                     {store.is_open ? 'Abierta' : 'Cerrada'}
                   </span>
                 </div>
                 <h2 style={s.storeName}>{store.name}</h2>
-                <p style={s.cardLink}>Ver productos →</p>
+                <p style={{ ...s.cardLink, color: store.is_open ? '#2563eb' : '#999' }}>
+                  {store.is_open ? 'Ver productos →' : 'No disponible'}
+                </p>
               </div>
             ))}
             {stores.length === 0 && <p style={s.empty}>No hay tiendas disponibles.</p>}
