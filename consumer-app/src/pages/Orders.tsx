@@ -67,43 +67,38 @@ export default function Orders() {
   const [loading, setLoading] = useState<boolean>(true)
   const [deliveryPositions, setDeliveryPositions] = useState<Record<string, Position>>({})
   const [arrivedOrders, setArrivedOrders] = useState<Set<string>>(new Set())
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const channelsRef = useRef<Record<string, any>>({})
   const navigate = useNavigate()
 
-  // Esta función debe definirse ANTES del useEffect
+  const toggleCollapse = (id: string) => {
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
   const subscribeToOrder = (orderId: string) => {
     if (channelsRef.current[orderId]) return
-    
-const subscribeToOrder = (orderId: string) => {
-  if (channelsRef.current[orderId]) return
-  console.log('Suscribiendo a canal:', `order:${orderId}`)}
-  // ... resto del código}
-
-    console.log('Suscribiendo a canal:', `order:${orderId}`)
 
     const channel = supabase.channel(`order:${orderId}`)
 
     channel.on('broadcast', { event: 'position-update' }, (payload: any) => {
-      console.log('Posición recibida:', payload)
       const { lat, lng } = payload.payload
       setDeliveryPositions(prev => ({ ...prev, [orderId]: { lat, lng } }))
     })
 
-    channel.on('broadcast', { event: 'order-delivered' }, (payload: any) => {
-      console.log('Pedido entregado recibido:', payload)
+    channel.on('broadcast', { event: 'order-delivered' }, () => {
       setArrivedOrders(prev => new Set([...prev, orderId]))
       setOrders(prev => prev.map(o =>
         o.id === orderId ? { ...o, status: 'Entregado' } : o
       ))
     })
 
-    channel.subscribe((status: string) => {
-      console.log('Estado del canal consumer:', status)
-    })
-
+    channel.subscribe()
     channelsRef.current[orderId] = channel
   }
-  
 
   useEffect(() => {
     api.get('/api/orders/my').then(res => {
@@ -134,11 +129,12 @@ const subscribeToOrder = (orderId: string) => {
       <div style={s.navbar}>
         <button style={s.back} onClick={() => navigate('/stores')}>← Tiendas</button>
         <span style={s.brand}>QuickShop</span>
-        <span />
+        <button style={s.refreshBtn} onClick={() => window.location.reload()}>Actualizar</button>
       </div>
       <div style={s.content}>
         <h1 style={s.title}>Mis pedidos</h1>
 
+        {/* Notificación de llegada */}
         {[...arrivedOrders].map(orderId => (
           <div key={orderId} style={s.toast}>
             Tu repartidor ha llegado al destino
@@ -153,64 +149,65 @@ const subscribeToOrder = (orderId: string) => {
                   const deliveryPos = deliveryPositions[order.id]
                   const destPos = parsePosition(order.destination)
                   const showMap = order.status === 'En entrega'
+                  const isCollapsed = collapsed.has(order.id)
 
                   return (
                     <div key={order.id} style={s.card}>
-                      <div style={s.cardHeader}>
+                      <div style={s.cardHeader} onClick={() => toggleCollapse(order.id)}>
                         <span style={s.storeName}>{order.stores?.name}</span>
-                        <span style={{ ...s.status, ...statusStyle[order.status] }}>
-                          {order.status}
-                        </span>
-                      </div>
-
-                      <div style={s.products}>
-                        {order.order_items?.map(item => (
-                          <span key={item.id} style={s.tag}>
-                            {item.products?.name} x{item.quantity}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <span style={{ ...s.status, ...statusStyle[order.status] }}>
+                            {order.status}
                           </span>
-                        ))}
-                      </div>
-
-                      {showMap && (
-                        <div style={s.mapContainer}>
-                          <p style={s.mapLabel}>
-                            Tracking en tiempo real
-                            {!deliveryPos && <span style={s.waitingText}> — Esperando posición del repartidor...</span>}
-                          </p>
-                          {(deliveryPos || destPos) && (
-                            <MapContainer
-                              center={
-                                deliveryPos
-                                  ? [deliveryPos.lat, deliveryPos.lng]
-                                  : [destPos!.lat, destPos!.lng]
-                              }
-                              zoom={16}
-                              style={{ height: '280px', width: '100%', borderRadius: '8px' }}
-                            >
-                              <TileLayer
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                attribution='&copy; OpenStreetMap'
-                              />
-                              {deliveryPos && <MapCenterUpdater position={deliveryPos} />}
-                              {deliveryPos && (
-                                <Marker position={[deliveryPos.lat, deliveryPos.lng]} icon={deliveryIcon}>
-                                  <Popup>Repartidor</Popup>
-                                </Marker>
-                              )}
-                              {destPos && (
-                                <Marker position={[destPos.lat, destPos.lng]}>
-                                  <Popup>Tu destino</Popup>
-                                </Marker>
-                              )}
-                            </MapContainer>
-                          )}
+                          <span style={s.collapseBtn}>{isCollapsed ? '▼' : '▲'}</span>
                         </div>
-                      )}
-
-                      <div style={s.cardFooter}>
-                        <span style={s.date}>{new Date(order.created_at).toLocaleDateString()}</span>
-                        <span style={s.total}>Total: ${Number(order.total).toLocaleString()}</span>
                       </div>
+
+                      {!isCollapsed && (
+                        <>
+                          <div style={s.products}>
+                            {order.order_items?.map(item => (
+                              <span key={item.id} style={s.tag}>
+                                {item.products?.name} x{item.quantity}
+                              </span>
+                            ))}
+                          </div>
+
+                          {showMap && (
+                            <div style={s.mapContainer}>
+                              <p style={s.mapLabel}>
+                                Tracking en tiempo real
+                                {!deliveryPos && <span style={s.waitingText}> — Esperando posición del repartidor...</span>}
+                              </p>
+                              {(deliveryPos || destPos) && (
+                                <MapContainer
+                                  center={deliveryPos ? [deliveryPos.lat, deliveryPos.lng] : [destPos!.lat, destPos!.lng]}
+                                  zoom={16}
+                                  style={{ height: '280px', width: '100%', borderRadius: '8px' }}
+                                >
+                                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
+                                  {deliveryPos && <MapCenterUpdater position={deliveryPos} />}
+                                  {deliveryPos && (
+                                    <Marker position={[deliveryPos.lat, deliveryPos.lng]} icon={deliveryIcon}>
+                                      <Popup>Repartidor</Popup>
+                                    </Marker>
+                                  )}
+                                  {destPos && (
+                                    <Marker position={[destPos.lat, destPos.lng]}>
+                                      <Popup>Tu destino</Popup>
+                                    </Marker>
+                                  )}
+                                </MapContainer>
+                              )}
+                            </div>
+                          )}
+
+                          <div style={s.cardFooter}>
+                            <span style={s.date}>{new Date(order.created_at).toLocaleDateString()}</span>
+                            <span style={s.total}>Total: ${Number(order.total).toLocaleString()}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )
                 })}
@@ -226,13 +223,15 @@ const s: Record<string, React.CSSProperties> = {
   navbar: { background: 'white', borderBottom: '1px solid #eee', padding: '0 2rem', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   brand: { fontWeight: '700', fontSize: '15px', color: '#2563eb' },
   back: { background: 'none', border: 'none', color: '#2563eb', fontSize: '14px', padding: '0' },
+  refreshBtn: { padding: '0.4rem 1rem', background: 'transparent', color: '#666', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' },
   content: { maxWidth: '700px', margin: '0 auto', padding: '2rem' },
   title: { fontSize: '1.4rem', fontWeight: '700', marginBottom: '1.5rem' },
   list: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },
   card: { background: 'white', padding: '1.25rem 1.5rem', borderRadius: '10px', border: '1px solid #eee' },
-  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' },
+  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', cursor: 'pointer' },
   storeName: { fontWeight: '600', fontSize: '15px' },
   status: { fontSize: '12px', fontWeight: '600', padding: '0.2rem 0.6rem', borderRadius: '20px' },
+  collapseBtn: { fontSize: '12px', color: '#999', cursor: 'pointer' },
   products: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' },
   tag: { fontSize: '13px', background: '#f5f5f5', padding: '0.2rem 0.6rem', borderRadius: '6px', color: '#444' },
   mapContainer: { marginBottom: '0.75rem', background: '#f9f9f9', padding: '0.75rem', borderRadius: '8px' },
