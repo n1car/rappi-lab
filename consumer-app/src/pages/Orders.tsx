@@ -66,7 +66,7 @@ export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [deliveryPositions, setDeliveryPositions] = useState<Record<string, Position>>({})
-  const [arrivedOrders, setArrivedOrders] = useState<Set<string>>(new Set())
+  const [toasts, setToasts] = useState<{ id: string; hiding: boolean }[]>([])
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const channelsRef = useRef<Record<string, any>>({})
   const navigate = useNavigate()
@@ -90,10 +90,19 @@ export default function Orders() {
     })
 
     channel.on('broadcast', { event: 'order-delivered' }, () => {
-      setArrivedOrders(prev => new Set([...prev, orderId]))
       setOrders(prev => prev.map(o =>
         o.id === orderId ? { ...o, status: 'Entregado' } : o
       ))
+
+      setToasts(prev => [...prev, { id: orderId, hiding: false }])
+
+      setTimeout(() => {
+        setToasts(prev => prev.map(t => t.id === orderId ? { ...t, hiding: true } : t))
+
+        setTimeout(() => {
+          setToasts(prev => prev.filter(t => t.id !== orderId))
+        }, 400)
+      }, 3000)
     })
 
     channel.subscribe()
@@ -119,9 +128,9 @@ export default function Orders() {
   }, [])
 
   const statusStyle: Record<string, React.CSSProperties> = {
-    'Creado':     { color: '#d97706', background: '#fffbeb' },
+    'Creado': { color: '#d97706', background: '#fffbeb' },
     'En entrega': { color: '#2563eb', background: '#eff6ff' },
-    'Entregado':  { color: '#16a34a', background: '#f0fdf4' }
+    'Entregado': { color: '#16a34a', background: '#f0fdf4' }
   }
 
   return (
@@ -134,10 +143,17 @@ export default function Orders() {
       <div style={s.content}>
         <h1 style={s.title}>Mis pedidos</h1>
 
-        {/* Notificación de llegada */}
-        {[...arrivedOrders].map(orderId => (
-          <div key={orderId} style={s.toast}>
-            Tu repartidor ha llegado al destino
+ 
+        {toasts.map(toast => (
+          <div
+            key={toast.id}
+            className={`toast-notification${toast.hiding ? ' hiding' : ''}`}
+          >
+            <span style={{ fontSize: '1.5rem' }}>✓</span>
+            <div>
+              <p style={{ margin: 0, fontSize: '14px', fontWeight: '700' }}>Pedido entregado</p>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: '400', opacity: 0.9 }}>Tu repartidor ha llegado al destino</p>
+            </div>
           </div>
         ))}
 
@@ -145,73 +161,73 @@ export default function Orders() {
           orders.length === 0
             ? <div style={s.empty}><p>No tienes pedidos aún.</p></div>
             : <div style={s.list}>
-                {orders.map(order => {
-                  const deliveryPos = deliveryPositions[order.id]
-                  const destPos = parsePosition(order.destination)
-                  const showMap = order.status === 'En entrega'
-                  const isCollapsed = collapsed.has(order.id)
+              {orders.map(order => {
+                const deliveryPos = deliveryPositions[order.id]
+                const destPos = parsePosition(order.destination)
+                const showMap = order.status === 'En entrega'
+                const isCollapsed = collapsed.has(order.id)
 
-                  return (
-                    <div key={order.id} style={s.card}>
-                      <div style={s.cardHeader} onClick={() => toggleCollapse(order.id)}>
-                        <span style={s.storeName}>{order.stores?.name}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <span style={{ ...s.status, ...statusStyle[order.status] }}>
-                            {order.status}
-                          </span>
-                          <span style={s.collapseBtn}>{isCollapsed ? '▼' : '▲'}</span>
-                        </div>
+                return (
+                  <div key={order.id} style={s.card}>
+                    <div style={s.cardHeader} onClick={() => toggleCollapse(order.id)}>
+                      <span style={s.storeName}>{order.stores?.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ ...s.status, ...statusStyle[order.status] }}>
+                          {order.status}
+                        </span>
+                        <span style={s.collapseBtn}>{isCollapsed ? '▼' : '▲'}</span>
                       </div>
-
-                      {!isCollapsed && (
-                        <>
-                          <div style={s.products}>
-                            {order.order_items?.map(item => (
-                              <span key={item.id} style={s.tag}>
-                                {item.products?.name} x{item.quantity}
-                              </span>
-                            ))}
-                          </div>
-
-                          {showMap && (
-                            <div style={s.mapContainer}>
-                              <p style={s.mapLabel}>
-                                Tracking en tiempo real
-                                {!deliveryPos && <span style={s.waitingText}> — Esperando posición del repartidor...</span>}
-                              </p>
-                              {(deliveryPos || destPos) && (
-                                <MapContainer
-                                  center={deliveryPos ? [deliveryPos.lat, deliveryPos.lng] : [destPos!.lat, destPos!.lng]}
-                                  zoom={16}
-                                  style={{ height: '280px', width: '100%', borderRadius: '8px' }}
-                                >
-                                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
-                                  {deliveryPos && <MapCenterUpdater position={deliveryPos} />}
-                                  {deliveryPos && (
-                                    <Marker position={[deliveryPos.lat, deliveryPos.lng]} icon={deliveryIcon}>
-                                      <Popup>Repartidor</Popup>
-                                    </Marker>
-                                  )}
-                                  {destPos && (
-                                    <Marker position={[destPos.lat, destPos.lng]}>
-                                      <Popup>Tu destino</Popup>
-                                    </Marker>
-                                  )}
-                                </MapContainer>
-                              )}
-                            </div>
-                          )}
-
-                          <div style={s.cardFooter}>
-                            <span style={s.date}>{new Date(order.created_at).toLocaleDateString()}</span>
-                            <span style={s.total}>Total: ${Number(order.total).toLocaleString()}</span>
-                          </div>
-                        </>
-                      )}
                     </div>
-                  )
-                })}
-              </div>
+
+                    {!isCollapsed && (
+                      <>
+                        <div style={s.products}>
+                          {order.order_items?.map(item => (
+                            <span key={item.id} style={s.tag}>
+                              {item.products?.name} x{item.quantity}
+                            </span>
+                          ))}
+                        </div>
+
+                        {showMap && (
+                          <div style={s.mapContainer}>
+                            <p style={s.mapLabel}>
+                              Tracking en tiempo real
+                              {!deliveryPos && <span style={s.waitingText}> — Esperando posición del repartidor...</span>}
+                            </p>
+                            {(deliveryPos || destPos) && (
+                              <MapContainer
+                                center={deliveryPos ? [deliveryPos.lat, deliveryPos.lng] : [destPos!.lat, destPos!.lng]}
+                                zoom={16}
+                                style={{ height: '280px', width: '100%', borderRadius: '8px' }}
+                              >
+                                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap' />
+                                {deliveryPos && <MapCenterUpdater position={deliveryPos} />}
+                                {deliveryPos && (
+                                  <Marker position={[deliveryPos.lat, deliveryPos.lng]} icon={deliveryIcon}>
+                                    <Popup>Repartidor</Popup>
+                                  </Marker>
+                                )}
+                                {destPos && (
+                                  <Marker position={[destPos.lat, destPos.lng]}>
+                                    <Popup>Tu destino</Popup>
+                                  </Marker>
+                                )}
+                              </MapContainer>
+                            )}
+                          </div>
+                        )}
+
+                        <div style={s.cardFooter}>
+                          <span style={s.date}>{new Date(order.created_at).toLocaleDateString()}</span>
+                          <span style={s.total}>Total: ${Number(order.total).toLocaleString()}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
         )}
       </div>
     </div>

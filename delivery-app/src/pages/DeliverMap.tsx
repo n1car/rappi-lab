@@ -72,7 +72,6 @@ export default function DeliverMap() {
     }
   }, [orderId])
 
-  // Cargar datos de la orden
   useEffect(() => {
     api.get(`/api/orders/${orderId}`).then(res => {
       const order = res.data
@@ -95,7 +94,6 @@ export default function DeliverMap() {
     })
   }, [orderId])
 
-  // updatePosition como useCallback para evitar stale closure
   const updatePosition = useCallback(async (pos: Position) => {
     try {
       console.log('Enviando posición:', pos)
@@ -125,7 +123,7 @@ export default function DeliverMap() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Usar pendingPosition.current para siempre tener la posición más reciente
+
       let { lat, lng } = pendingPosition.current
 
       switch (e.key) {
