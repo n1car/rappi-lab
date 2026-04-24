@@ -23,23 +23,24 @@ export default function AvailableOrders() {
 
   const fetchOrders = () => {
     setLoading(true)
-    api.get('/api/orders/available').then(res => { setOrders(res.data); setLoading(false) })
+    api.get('/api/orders/available').then(res => {
+      setOrders(res.data)
+      setLoading(false)
+    })
   }
 
   useEffect(() => { fetchOrders() }, [])
 
   const accept = async (id: string) => {
     setActing(id)
-    try { await api.put(`/api/orders/${id}/accept`); fetchOrders() }
-    catch { alert('Error al aceptar la orden') }
-    setActing(null)
-  }
-
-  const decline = async (id: string) => {
-    setActing(id)
-    try { await api.put(`/api/orders/${id}/decline`); fetchOrders() }
-    catch { alert('Error al rechazar la orden') }
-    setActing(null)
+    try {
+      await api.patch(`/api/orders/${id}/accept`)
+      // Redirigir al mapa de delivery con el id de la orden
+      navigate(`/deliver/${id}`)
+    } catch {
+      alert('Error al aceptar la orden')
+      setActing(null)
+    }
   }
 
   const logout = () => { localStorage.clear(); navigate('/login') }
@@ -75,11 +76,12 @@ export default function AvailableOrders() {
                     </div>
                     <p style={s.date}>{new Date(order.created_at).toLocaleString()}</p>
                     <div style={s.actions}>
-                      <button style={s.acceptBtn} onClick={() => accept(order.id)} disabled={acting === order.id}>
+                      <button
+                        style={s.acceptBtn}
+                        onClick={() => accept(order.id)}
+                        disabled={acting === order.id}
+                      >
                         {acting === order.id ? 'Procesando...' : 'Aceptar'}
-                      </button>
-                      <button style={s.declineBtn} onClick={() => decline(order.id)} disabled={acting === order.id}>
-                        Rechazar
                       </button>
                     </div>
                   </div>
@@ -111,7 +113,6 @@ const s: Record<string, React.CSSProperties> = {
   date: { fontSize: '12px', color: '#aaa', margin: '0.5rem 0 1rem' },
   actions: { display: 'flex', gap: '0.75rem' },
   acceptBtn: { flex: 1, padding: '0.65rem', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '14px' },
-  declineBtn: { flex: 1, padding: '0.65rem', background: 'white', color: '#dc2626', border: '1px solid #dc2626', borderRadius: '8px', fontWeight: '600', fontSize: '14px' },
   loading: { textAlign: 'center', color: '#666', padding: '2rem' },
   empty: { textAlign: 'center', padding: '3rem', background: 'white', borderRadius: '10px', border: '1px solid #eee' },
   emptyTitle: { fontWeight: '600', marginBottom: '0.5rem' },

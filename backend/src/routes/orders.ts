@@ -75,13 +75,10 @@ router.post('/', authenticate, requireRole(['consumer']), async (req: AuthReques
 router.get('/my', authenticate, requireRole(['consumer']), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { data, error } = await supabase
-      .from('orders')
-      .select('*, stores(name), order_items(*, products(name))')
-      .eq('consumer_id', req.user!.id)
-      .order('created_at', { ascending: false })
+      .rpc('get_orders_for_consumer', { consumer_uuid: req.user!.id })
 
     if (error) throw error
-    res.json(data)
+    res.json(data || [])
   } catch {
     res.status(500).json({ error: 'Error al obtener órdenes' })
   }
@@ -149,14 +146,11 @@ router.get('/delivery', authenticate, requireRole(['delivery']), async (req: Aut
   }
 })
 
-// GET /api/orders/:id — Detalle de una orden
+// GET /api/orders/:id — Detalle de una orden con coordenadas
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { data, error } = await supabase
-      .from('orders')
-      .select('*, stores(name), order_items(*, products(name))')
-      .eq('id', req.params.id)
-      .single()
+      .rpc('get_order_with_coords', { order_id: req.params.id })
 
     if (error) throw error
     res.json(data)

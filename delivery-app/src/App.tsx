@@ -3,6 +3,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import AvailableOrders from './pages/AvailableOrders'
 import MyOrders from './pages/MyOrders'
+import DeliverMap from './pages/DeliverMap'
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('token')
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/available" element={<PrivateRoute><AvailableOrders /></PrivateRoute>} />
         <Route path="/my-orders" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
+        <Route path="/deliver/:orderId" element={<PrivateRoute><DeliverMap /></PrivateRoute>} />
       </Routes>
     </BrowserRouter>
   )
